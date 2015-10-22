@@ -29,6 +29,8 @@ node[:deploy].each do |application, deploy|
   # composer install
   execute "cd /srv/www/#{application}/src && composer install --no-dev"
 
+  execute "cd /srv/www/#{application}/src && chmod -R 777 storage/"
+
   # nginx and php-fpm
   execute "service nginx restart"
   execute "service php-fpm restart"
