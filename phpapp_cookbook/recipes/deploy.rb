@@ -1,5 +1,5 @@
 node[:deploy].each do |application, deploy|
-  
+
   # use opsworks ssh key management and load the key into the ec2 instance. 
   # it's helpful to have the deploy key loaded into the root user
 
@@ -18,31 +18,18 @@ node[:deploy].each do |application, deploy|
     ignore_failure true
   end
 
-  # make sure the ssh key is loaded
-  execute "eval `ssh-agent -s`"
-  execute "ssh-agent bash -c 'ssh-add /root/.ssh/id_deploy'"
-  
   # clone the repo
-  execute "cd /var && git clone #{deploy[:scm][:repository]} #{node['phpapp']['app_name']}" do
+  execute "cd /srv/www && ssh-agent bash -c 'ssh-add /root/.ssh/id_deploy; git clone #{deploy[:scm][:repository]} #{application}'" do
     ignore_failure true
   end
 
-  # set any php.ini settings needed
-  template "/etc/php.d/#{node['phpapp']['app_name']}.ini" do
-    source "php.conf.erb"
-    owner "root"
-    group "root"
-    mode 0644
-  end
-
-  # set apache2 hosts
-  web_app "#{node['phpapp']['app_name']}" do
-    server_name "#{node['phpapp']['hostname']}"
-    docroot "/var/#{node['phpapp']['app_name']}/public"
-    template "webapp.conf.erb"
-    log_dir node['apache']['log_dir'] 
-  end
-
   # use simple git pull to deploy code changes
-  execute "cd /var/#{node['phpapp']['app_name']} && git clean -df && git reset --hard && git pull"
+  execute "cd /srv/www/#{application} && git clean -df && git reset --hard && ssh-agent bash -c 'ssh-add /root/.ssh/id_deploy; git pull'"
+
+  # composer install
+  execute "cd /srv/www/#{application}/src && composer install --no-dev"
+
+  # nginx and php-fpm
+  execute "service nginx restart"
+  execute "service php-fpm restart"
 end
