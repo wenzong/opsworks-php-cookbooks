@@ -45,15 +45,4 @@ node[:deploy].each do |application, deploy|
 
   # use simple git pull to deploy code changes
   execute "cd /var/#{node['phpapp']['app_name']} && git clean -df && git reset --hard && git pull"
-  
-  # install composer
-  script "install_composer" do
-    interpreter "bash"
-    user "root"
-    cwd "/var/app"
-    code <<-EOH
-    composer install --prefer-source --optimize-autoloader  --no-interaction
-    EOH
-  end
-
 end
